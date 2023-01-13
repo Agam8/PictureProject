@@ -1,5 +1,5 @@
 import numpy as np
-from Colors import color_string_to_rgb
+from PIL import Image
 pic_id = 0
 pic_size = 100
 
@@ -13,16 +13,18 @@ def load_pic():
     """
     global pic_id, pic_size
     if pic_id == '1':
-        color = color_string_to_rgb("green")
+        img = Image.open("color1.jpg")
+        picture = np.asarray(img)
     elif pic_id == '2':
-        color = color_string_to_rgb("red")
+        img = Image.open("color2.jpg")
+        picture = np.asarray(img)
     elif pic_id == '3':
-        color = color_string_to_rgb("teal")
+        img = Image.open("color3.jpg")
+        picture = np.asarray(img)
     else:
-        color = color_string_to_rgb("purple")
-    picture = np.full((pic_size, pic_size), color)
+        img = Image.open("color4.jpg")
+        picture = np.asarray(img)
     return picture
-
 
 def part_of_pic(y, x, length, width, picture):
     """
@@ -35,13 +37,13 @@ def part_of_pic(y, x, length, width, picture):
     :return: part of pic
     """
     part = picture[y:length+1, x:width+1]
-    print(part)
+    return part
 
 
 def main():
     global pic_id
     pic_id = 1
-    part_of_pic(2, 2, 50, 50, load_pic())
+    pixels = part_of_pic(2, 2, 50, 50, load_pic())
 
 
 if __name__ == '__main__':

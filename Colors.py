@@ -75,13 +75,13 @@ def is_hex(string):
 
 
 def color_string_to_rgb(color_string):
-    """Converts the color string into an RGB tuple.
+    """Converts the color string into an RGB array.
 
     Arguments:
     color_string -- the string to converts
 
     Returns:
-    an (R, G, B) tuple
+    an [R, G, B] array
     """
     # Named color
     if color_string in NAMED_COLORS:
@@ -93,11 +93,12 @@ def color_string_to_rgb(color_string):
     if len(color_string) == 3:
         color_string = color_string[0] * 2 + color_string[1] * 2 + color_string[2] * 2  # noqa
     # ff0000 -> (255, 0, 0)
-    return (
+    arr = [
         int(color_string[0:2], 16),
         int(color_string[2:4], 16),
         int(color_string[4:], 16)
-        )
+        ]
+    return arr
 
 
 def hotsbtnmap_to_list(kstring):
