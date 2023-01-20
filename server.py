@@ -14,13 +14,32 @@ LOCK = threading.Lock()
 msgs format: | - to split each bit in the 2 dimensional array
              _ - to split each line in the 2 dimensional array
              # - separate fields in the msg
+             msg_code#data
              
+for the code: part_of_pic(2, 2, 4, 4, pic)
+returns the 2 - 4 pixels in lines 2 - 4
+format: [[[RGB][RGB][RGB]]
+         [[RGB][RGB][RGB]]
+         [[RGB][RGB][RGB]]]
+
+y, x, length, width: separate by,
+
+msgs format: separate by  #
+
+protocol: ROLE - server to client, sends the client role (1-4)
+          RCVROLE - client to server, approval for received role
+          CRDNTS - server to client, sends the y, x, length, width (by mentioned format)
+          PART - client to server, sends the part of the picture the server asked for (by mentioned format)
+
 """
+
+
 def find_role(cli_sock):
     for role, sock in clients_roles_sockets.items():
         if sock == cli_sock:
             return role
     return 0
+
 
 def get_pixels_to_clients(y_pos, x_pos, current_role):
     """
@@ -43,6 +62,7 @@ def get_pixels_to_clients(y_pos, x_pos, current_role):
     elif current_role ==  4:
         left_y_pos, left_x_pos, length, width = get_role4_pos(x_pos,y_pos)
     return left_y_pos, left_x_pos, length, width
+
 
 def get_role1_pos(x_pos, y_pos):
     left_y_pos = 0
@@ -164,6 +184,7 @@ def get_role4_pos(x_pos, y_pos):
         length = WINDOW_LENGTH - (100 - y_pos)
     return left_y_pos, left_x_pos, length, width
 
+
 def get_open_role(cli_sock):
     global clients_roles_sockets
     open_role = 0
@@ -182,9 +203,9 @@ def handle_client(cli_sock):
 
 
 
-
 def handle_screen():
     pygame.init()
+
 
 def main():
     threads = []
