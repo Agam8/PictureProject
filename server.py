@@ -1,4 +1,4 @@
-import socket, threading, pygame
+import socket, threading, pygame, tcp_by_size
 clients_roles_sockets = {1: None,
                          2: None,
                          3: None,
@@ -8,6 +8,11 @@ WINDOW_WIDTH = 50
 IP = '0.0.0.0'
 PORT = 7171
 LOCK = threading.Lock()
+from pygame.locals import (
+    K_UP,
+    K_DOWN,
+    K_LEFT,
+    K_RIGHT,)
 
 
 """
@@ -27,7 +32,7 @@ y, x, length, width: separate by,
 msgs format: separate by  #
 
 protocol: ROLE - server to client, sends the client role (1-4)
-          RCVROLE - client to server, approval for received role
+          RCVROL - client to server, approval for received role
           CRDNTS - server to client, sends the y, x, length, width (by mentioned format)
           PART - client to server, sends the part of the picture the server asked for (by mentioned format)
 
@@ -64,7 +69,7 @@ def get_pixels_to_clients(y_pos, x_pos, current_role):
     return left_y_pos, left_x_pos, length, width
 
 
-def get_role1_pos(x_pos, y_pos):
+def get_role1_pos(y_pos,x_pos):
     left_y_pos = 0
     left_x_pos = 0
     length = 0
@@ -95,7 +100,7 @@ def get_role1_pos(x_pos, y_pos):
     return left_y_pos, left_x_pos, length, width
 
 
-def get_role2_pos(x_pos, y_pos):
+def get_role2_pos(y_pos, x_pos):
     left_y_pos = 0
     left_x_pos = 0
     length = 0
@@ -127,7 +132,7 @@ def get_role2_pos(x_pos, y_pos):
     return left_y_pos, left_x_pos, length, width
 
 
-def get_role3_pos(x_pos, y_pos):
+def get_role3_pos(y_pos, x_pos):
     left_y_pos = 0
     left_x_pos = 0
     length = 0
@@ -156,7 +161,7 @@ def get_role3_pos(x_pos, y_pos):
     return left_y_pos, left_x_pos, length, width
 
 
-def get_role4_pos(x_pos, y_pos):
+def get_role4_pos(y_pos,x_pos):
     left_y_pos = 0
     left_x_pos = 0
     length = 0
@@ -199,8 +204,27 @@ def get_open_role(cli_sock):
 
 def handle_client(cli_sock):
     role = get_open_role(cli_sock)
+    tcp_by_size.send_with_size(cli_sock, b'role')
+
+    y_pos, x_pos = get_cursor_pos()
+
+    while True:
+        if role == 1:
+            tcp_by_size.send_with_size(cli_sock, get_role1_pos())
+        elif role == 2:
+            pass
+        elif role == 3:
+            pass
+        else:
+            pass
 
 
+def get_cursor_pos():
+    """
+    gets cursor position and returns ypos, xpos
+    :return:
+    """
+    return 0, 0
 
 
 def handle_screen():
@@ -218,7 +242,7 @@ def main():
     while True:
         print('\nMain thread: before accepting ...')
         cli_sock, addr = srv_sock.accept()
-        t = threading.Thread(target=handle_client, args=(cli_sock,addr))
+        t = threading.Thread(target=handle_client, args=(cli_sock,srv_sock))
         t.start()
         i += 1
         threads.append(t)

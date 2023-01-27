@@ -50,6 +50,7 @@ def part_of_pic(y, x, length, width):
 
 def handle_client(data):
     global pic_id
+
     data = data.split('#')
     msg_code = data[0]
     data = data[1]
@@ -57,7 +58,7 @@ def handle_client(data):
     if msg_code == 'ROLE':
         pic_id = data.decode()
         load_pic()
-        return b'RCVROLE'
+        return b'RCVROL'
 
     elif msg_code == 'CRDNTS':
         coordinates = data.split(',')
@@ -68,7 +69,7 @@ def handle_client(data):
 def main(ip):
     global PORT
     connected = False
-
+    threads = []
     sock = socket.socket()
     try:
         sock.connect((ip, PORT))
