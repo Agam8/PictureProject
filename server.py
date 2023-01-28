@@ -6,7 +6,7 @@ clients_roles_sockets = {1: None,
                          4: None}
 PIC_LENGTH = 50
 PIC_WIDTH = 50
-WINDOW_LENGTH =200
+WINDOW_LENGTH = 200
 WINDOW_WIDTH = 200
 IP = '0.0.0.0'
 PORT = 7171
@@ -30,7 +30,6 @@ format: [[[RGB][RGB][RGB]]
          [[RGB][RGB][RGB]]
          [[RGB][RGB][RGB]]]
 
-y, x, length, width: separate by,
 
 msgs format: separate by  #
 
@@ -215,6 +214,14 @@ def handle_send(cli_sock, req, role, y_pos= 0, x_pos= 0):
 
         data += 'QUITS'
     tcp_by_size.send_with_size(cli_sock,data.encode())
+def handle_recv(cli_sock):
+    pass
+    recv =  tcp_by_size.recv_by_size(cli_sock)
+    data = recv.split(b'#')
+    code = data[0]
+    if code == b'RCVPS':
+        pass
+
 
 
 def handle_client(cli_sock, screen):
@@ -239,23 +246,10 @@ def handle_client(cli_sock, screen):
                 elif event.key == pygame.K_LEFT:
                     set_cursor_pos(y_pos, x_pos -1)
                 handle_send(cli_sock, 'GETPS', role,y_pos,x_pos)
-
-
+                recv_pic = handle_recv(cli_sock)
 
     if finish:
         handle_send(cli_sock,'QUITS',role)
-
-
-
-    while True:
-        if role == 1:
-            tcp_by_size.send_with_size(cli_sock, get_role1_pos())
-        elif role == 2:
-            pass
-        elif role == 3:
-            pass
-        else:
-            pass
 
 
 def get_cursor_pos():
@@ -299,8 +293,11 @@ def main():
     while True:
         print('\nMain thread: before accepting ...')
         cli_sock, addr = srv_sock.accept()
-        t = threading.Thread(target=handle_client, args=(cli_sock, screen))
-        t.start()
+        print('accepted a client')
+        finish = False
+        while not finish:
+            t = threading.Thread(target=handle_client, args=(cli_sock, screen))
+            t.start()
         i += 1
         threads.append(t)
         if i > 100000000:  # for tests change it to 4
@@ -308,7 +305,7 @@ def main():
             break
 
     all_to_die = True
-    print('Main thread: waiting to all clints to die')
+    print('Main thread: waiting to all clients to die')
     for t in threads:
         t.join()
     srv_sock.close()

@@ -1,7 +1,6 @@
-import numpy as np
-from PIL import Image
+
 import socket, sys, tcp_by_size, traceback
-pic_id = '1'
+role = '1'
 PORT = 7171
 picture = b''
 
@@ -14,13 +13,13 @@ def load_pic():
     :return:
     """
     global picture
-    if pic_id == '1':
+    if role == '1':
         img = Image.open('color1.jpg')
         picture = np.asarray(img)
-    elif pic_id == '2':
+    elif role == '2':
         img = Image.open('color2.jpg')
         picture = np.asarray(img)
-    elif pic_id == '3':
+    elif role == '3':
         img = Image.open('color3.jpg')
         picture = np.asarray(img)
     else:
@@ -32,7 +31,6 @@ def load_pic():
 # format: [ [[RGB][RGB][RGB]]
 #           [[RGB][RGB][RGB]]
 #           [[RGB][RGB][RGB]] ]
-
 
 def part_of_pic(y, x, length, width):
     """
@@ -48,22 +46,25 @@ def part_of_pic(y, x, length, width):
     return part
 
 
-def handle_client(data):
-    global pic_id
+def handle_data(data):
+    global role
 
     data = data.split('#')
     msg_code = data[0]
-    data = data[1]
 
-    if msg_code == 'ROLE':
-        pic_id = data.decode()
+
+    if msg_code == 'GETRL':
+        role = data[1]
         load_pic()
-        return b'RCVROL'
+        return b'RCVRL'
 
-    elif msg_code == 'CRDNTS':
-        coordinates = data.split(',')
+    elif msg_code == 'GETPS':
+        coordinates = [data[1],data[2],data[3],data[4]] # y_pos, x_pos, length, width
         data_to_send = part_of_pic(coordinates[0], coordinates[1], coordinates[2], coordinates[3])
-        return b'PART#' + str(data_to_send).encode()
+        return b'RCVPS#' + str(data_to_send).encode()
+
+    elif msg_code == 'QUITS':
+        return 'exit'
 
 
 def main(ip):
@@ -71,6 +72,7 @@ def main(ip):
     connected = False
     threads = []
     sock = socket.socket()
+    connected = False
     try:
         sock.connect((ip, PORT))
         print(f'Connect succeeded {ip}:{PORT}')
@@ -82,8 +84,12 @@ def main(ip):
         try:
             while True:
                 data = tcp_by_size.recv_by_size(sock).decode()
-                to_send = handle_client(data)
-                tcp_by_size.send_with_size(sock, to_send)
+                to_send = handle_data(data)
+                if to_send != 'exit':
+                    tcp_by_size.send_with_size(sock, to_send)
+                else:
+                    connected=False
+
 
         except socket.error as err:
             print(f'Got socket error: {err}')
@@ -92,7 +98,7 @@ def main(ip):
             print(f'General error: {err}')
             print(traceback.format_exc())
             break
-        sock.close()
+    sock.close()
 
 
 if __name__ == '__main__':
