@@ -1,4 +1,5 @@
-import socket, threading, pygame, tcp_by_size
+import socket, threading, pygame, tcp_by_size, time
+from PIL import Image
 
 clients_roles_sockets = {1: None,
                          2: None,
@@ -16,7 +17,6 @@ BLACK = (0, 0, 0)
 X_POS = 0
 Y_POS = 0
 MOVED = False
-
 
 """
 msgs format: | - to split each bit in the 2 dimensional array
@@ -39,6 +39,7 @@ protocol: GETRL - server to client, sends the client role (1-4)
           RCVPS - client to server, sends the part of the picture the server asked for (by mentioned format)
 
 """
+
 
 def find_role(cli_sock):
     for role, sock in clients_roles_sockets.items():
@@ -195,61 +196,75 @@ def get_open_role(cli_sock):
     global clients_roles_sockets
     open_role = 0
     for role, sock in clients_roles_sockets.items():
-        if sock != None:
+        if sock is None:
             LOCK.acquire()
             open_role = role
             clients_roles_sockets[role] = cli_sock
             LOCK.release()
-    return open_role
+            if open_role != 0:
+                return open_role
 
-def handle_send(cli_sock, req, role, y_pos= 0, x_pos= 0):
+
+def handle_send(cli_sock, req, role, y_pos=0, x_pos=0):
     global clients_roles_sockets
     data = ''
     if req == 'GETRL':
         data += req + '#' + role
     elif req == 'GETPS':
-        y_pos, x_pos, length, width =  get_pixels_to_clients(y_pos,x_pos,role)
-        data += req + '#' +y_pos  + '#' +x_pos + '#' +length + '#' + width
+        y_pos, x_pos, length, width = get_pixels_to_clients(y_pos, x_pos, role)
+        data += req + '#' + y_pos + '#' + x_pos + '#' + length + '#' + width
     elif req == 'QUITS':
 
         data += 'QUITS'
-    tcp_by_size.send_with_size(cli_sock,data.encode())
+    tcp_by_size.send_with_size(cli_sock, data.encode())
+
+
 def handle_recv(cli_sock):
     pass
-    recv =  tcp_by_size.recv_by_size(cli_sock)
+    recv = tcp_by_size.recv_by_size(cli_sock)
     data = recv.split(b'#')
     code = data[0]
     if code == b'RCVPS':
-        pass
-
+        picture = Image.fromarray(data[1].decode())
+        return picture
+    elif code == b'RCVRL':
+        return True
 
 
 def handle_client(cli_sock, screen):
     global MOVED
     role = get_open_role(cli_sock)
-    handle_send(cli_sock, 'GETRL', role)
+    handle_send(cli_sock, 'GETRL', str(role))
+    got_role = handle_recv(cli_sock)
 
-    y_pos, x_pos = get_cursor_pos()
-    finish = False
-    while not finish:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                finish = True
-            if event.type == pygame.KEYDOWN:
-                MOVED = False
-                if event.key == pygame.K_UP:
-                    set_cursor_pos(y_pos - 1, x_pos)
-                elif event.key == pygame.K_DOWN:
-                    set_cursor_pos(y_pos + 1, x_pos)
-                elif event.key == pygame.K_RIGHT:
-                    set_cursor_pos(y_pos, x_pos + 1)
-                elif event.key == pygame.K_LEFT:
-                    set_cursor_pos(y_pos, x_pos -1)
-                handle_send(cli_sock, 'GETPS', role,y_pos,x_pos)
-                recv_pic = handle_recv(cli_sock)
+    if got_role:
+        y_pos, x_pos = get_cursor_pos()
+        finish = False
+        while not finish:
+            for event in pygame.event.get():
+                time.sleep(1)
+                if event.type == pygame.QUIT:
+                    finish = True
+                if event.type == pygame.KEYDOWN:
+                    print("here")
+                    MOVED = False
+                    if event.key == pygame.K_UP:
+                        print("up")
+                        set_cursor_pos(y_pos - 1, x_pos)
+                    elif event.key == pygame.K_DOWN:
+                        set_cursor_pos(y_pos + 1, x_pos)
+                    elif event.key == pygame.K_RIGHT:
+                        set_cursor_pos(y_pos, x_pos + 1)
+                    elif event.key == pygame.K_LEFT:
+                        set_cursor_pos(y_pos, x_pos - 1)
+
+                    handle_send(cli_sock, 'GETPS', role, y_pos, x_pos)
+                    recv_pic = handle_recv(cli_sock)
+                    screen.blit(recv_pic, (x_pos, y_pos))
+                    pygame.display.flip()
 
     if finish:
-        handle_send(cli_sock,'QUITS',role)
+        handle_send(cli_sock, 'QUITS', role)
 
 
 def get_cursor_pos():
@@ -259,6 +274,7 @@ def get_cursor_pos():
     """
     return Y_POS, X_POS
 
+
 def set_cursor_pos(y_pos, x_pos):
     global X_POS, Y_POS, MOVED
     if not MOVED:
@@ -267,11 +283,10 @@ def set_cursor_pos(y_pos, x_pos):
         MOVED = True
 
 
-
 def init_screen():
     global X_POS, Y_POS
     pygame.init()
-    screen = pygame.display.set_mode((WINDOW_LENGTH,WINDOW_WIDTH))
+    screen = pygame.display.set_mode((WINDOW_LENGTH, WINDOW_WIDTH))
     pygame.display.set_caption("Server's View")
     screen.fill(BLACK)
     pygame.draw.line(screen, WHITE, [0, WINDOW_WIDTH / 2], [WINDOW_LENGTH, WINDOW_WIDTH / 2], 2)
@@ -295,9 +310,9 @@ def main():
         cli_sock, addr = srv_sock.accept()
         print('accepted a client')
         finish = False
-        while not finish:
-            t = threading.Thread(target=handle_client, args=(cli_sock, screen))
-            t.start()
+        # while not finish:
+        t = threading.Thread(target=handle_client, args=(cli_sock, screen))
+        t.start()
         i += 1
         threads.append(t)
         if i > 100000000:  # for tests change it to 4
